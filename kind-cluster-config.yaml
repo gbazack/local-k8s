@@ -26,11 +26,6 @@ nodes:
   image: kindest/node:v1.29.4
   labels:
     node-type: worker
-    tier: frontend
-- role: worker
-  image: kindest/node:v1.29.4
-  labels:
-    node-type: worker
     tier: backend
 - role: worker
   image: kindest/node:v1.29.4

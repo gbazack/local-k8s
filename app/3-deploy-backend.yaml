@@ -1,0 +1,99 @@
+# Backend
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: symfony
+    tier: backend
+  name: symfony
+  namespace: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: symfony
+      tier: backend
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 70%
+      maxSurge: 50%
+  template:
+    metadata:
+      labels:
+        app: symfony
+        tier: backend
+      # annotations:
+      #   container.apparmor.security.beta.kubernetes.io/symfony: runtime/default
+    spec:
+      serviceAccountName: backend-sa
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: tier
+                operator: In
+                values:
+                - backend
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - topologyKey: topology.kubernetes.io/zone
+            labelSelector:
+              matchExpressions:
+              - key: tier
+                operator: In
+                values:
+                - database
+      # imagePullSecrets:
+      # - name: pull-secret
+      containers:
+      - image: bitnami/symfony:6.4.3
+        name: symfony
+        imagePullPolicy: Always
+        resources:
+          requests:
+            cpu: 100m
+            memory: 100Mi
+          limits:
+            cpu: 500m
+            memory: 500Mi
+        ports:
+        - containerPort: 8000
+        env:
+        - name: SYMFONY_PROJECT_SKELETON
+          value: "symfony/skeleton"
+        - name: SYMFONY_DATABASE_HOST
+          value: mariadb.database.svc.cluster.local
+        - name: SYMFONY_DATABASE_PORT_NUMBER
+          value: "3306"
+        - name: SYMFONY_DATABASE_NAME
+          value: symfonydb
+        - name: SYMFONY_DATABASE_USER
+          valueFrom:
+            secretKeyRef:
+              name: mariadb-secret
+              key: username
+        - name: SYMFONY_DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mariadb-secret
+              key: password
+        securityContext:
+          allowPrivilegeEscalation: false
+      # securityContext:
+      #   seccompProfile:
+      #     type: RuntimeDefault
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: symfony
+  namespace: backend
+spec:
+  selector:
+    app: symfony
+    tier: backend
+  type: ClusterIP # ClusterIP, NodePort, LoadBalancer, ExternalName
+  ports:
+  - port: 80
+    targetPort: 8000

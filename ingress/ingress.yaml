@@ -1,24 +1,20 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: ingress
+  name: symfony-ingress
+  namespace: backend
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "false"
 spec:
+  ingressClassName: nginx
   rules:
   - http:
       paths:
-      - pathType: Prefix
-        path: /frontend(/|$)(.*)
+      - path: /
+        pathType: Prefix
         backend:
           service:
-            name: frontend
+            name: symfony
             port:
-              number: 8080
-      - pathType: Prefix
-        path: /backend(/|$)(.*)
-        backend:
-          service:
-            name: backend
-            port:
-              number: 8080
+              number: 80
